@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contador de Cofres — Fortnite</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="header">
+      <div>
+        <p class="eyebrow">Treasure Hunters · Token Tracker</p>
+        <h1>Contador de Cofres</h1>
+      </div>
+      <div class="header-actions">
+        <button id="btn-set-base" class="btn btn-ghost btn-sm" type="button">Ajustar base</button>
+        <button id="btn-export" class="btn btn-ghost btn-sm" type="button">Exportar</button>
+        <label class="btn btn-ghost btn-sm file-label" for="input-import">Importar</label>
+        <input id="input-import" type="file" accept="application/json" hidden />
+      </div>
+    </header>
+
+    <div id="status-banner" class="status-banner" role="status" aria-live="polite" hidden></div>
+
+    <section id="drop-zone" class="card connect-card" aria-label="Conectar carpeta de Fortnite">
+      <div class="connect-top">
+        <div class="watcher-title-row">
+          <span id="watcher-dot" class="status-dot idle"></span>
+          <strong id="connect-title">Conecta tu carpeta de Fortnite</strong>
+        </div>
+        <span class="privacy-pill">100% en tu navegador · Sin descargas</span>
+      </div>
+
+      <p id="watcher-message" class="watcher-message">
+        Haz clic abajo para elegir tu carpeta de repeticiones. Cuenta cofres abiertos y edificios rotos automáticamente.
+      </p>
+
+      <div id="browser-connect-controls" class="connect-actions">
+        <button id="btn-connect-folder" class="btn btn-primary btn-connect" type="button">
+          Conectar carpeta Demos
+        </button>
+        <button id="btn-reconnect-folder" class="btn btn-gold btn-connect" type="button" hidden>
+          Reconectar carpeta guardada
+        </button>
+        <button id="btn-copy-path" class="btn btn-secondary" type="button">
+          Copiar ruta
+        </button>
+        <label class="btn btn-ghost file-label" for="input-replay-files">
+          Elegir archivos
+        </label>
+        <input id="input-replay-files" type="file" accept=".replay" multiple hidden />
+      </div>
+
+      <div id="local-server-controls" class="connect-actions" hidden>
+        <button id="btn-scan" class="btn btn-secondary btn-sm" type="button">Buscar partidas</button>
+        <button id="btn-rescan" class="btn btn-ghost btn-sm" type="button">Re-escanear</button>
+      </div>
+
+      <details id="help-guide" class="guide-details">
+        <summary>¿No sabes dónde está tu carpeta? Míralo aquí (3 pasos fáciles)</summary>
+        <ol class="guide-steps">
+          <li>Pulsa el botón <strong>Copiar ruta</strong> de arriba (copia <code>%LOCALAPPDATA%\FortniteGame\Saved\Demos</code>).</li>
+          <li>Pulsa <strong>Conectar carpeta Demos</strong>, haz clic en la barra de arriba de la ventana que se abre, pega la ruta (<kbd>Ctrl</kbd> + <kbd>V</kbd>) y pulsa <kbd>Enter</kbd>.</li>
+          <li>Haz clic en <strong>Seleccionar carpeta</strong> y permite solo lectura. ¡Listo! Deja esta pestaña abierta mientras juegas.</li>
+        </ol>
+        <p class="guide-note">
+          Recuerda tener activado en Fortnite: <strong>Ajustes → Juego → Repeticiones → Grabar repeticiones</strong>. También puedes arrastrar archivos <code>.replay</code> directo sobre esta caja.
+        </p>
+      </details>
+    </section>
+
+    <section class="card total-card" aria-label="Total acumulado">
+      <div class="total-main">
+        <div>
+          <span class="label">Total acumulado</span>
+          <div id="total-count" class="total-number">0</div>
+        </div>
+        <div class="total-right">
+          <div class="mode-switch" role="group" aria-label="Modo de conteo">
+            <button id="btn-mode-mine" class="mode-btn active" type="button">Solo míos</button>
+            <button id="btn-mode-squad" class="mode-btn" type="button">Con equipo</button>
+          </div>
+          <div class="base-badge" id="base-badge" hidden>
+            Base previa: <strong id="base-count-label">0</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-box">
+          <span class="stat-label">Partidas</span>
+          <strong id="stat-matches" class="stat-value">0</strong>
+        </div>
+        <div class="stat-box">
+          <span class="stat-label">Promedio / partida</span>
+          <strong id="stat-avg" class="stat-value">0.0</strong>
+        </div>
+        <div class="stat-box">
+          <span class="stat-label">Mejor partida</span>
+          <strong id="stat-best" class="stat-value">0</strong>
+        </div>
+        <div class="stat-box">
+          <span class="stat-label">Prob. acumulada token</span>
+          <strong id="stat-odds" class="stat-value">0.00%</strong>
+        </div>
+      </div>
+
+      <div class="breakdown-row">
+        <span>Abiertos: <strong id="stat-opened">0</strong></span>
+        <span>Rotos / edificios: <strong id="stat-broken">0</strong></span>
+      </div>
+    </section>
+
+    <section class="card history-card" aria-label="Historial de partidas">
+      <div class="history-header">
+        <h2>Historial de partidas</h2>
+        <button id="btn-clear-all" class="btn-link danger" type="button">Borrar todo</button>
+      </div>
+      <ul id="history-list" class="history-list"></ul>
+      <p id="history-empty" class="empty-state">
+        Aún no hay partidas guardadas. Conecta tu carpeta <code>Demos</code> arriba para detectarlas automáticamente.
+      </p>
+    </section>
+
+    <details class="card manual-details">
+      <summary class="manual-summary">
+        <span>Contador manual (Xbox / conteo rápido)</span>
+        <span class="manual-badge">Actual: <strong id="current-count">0</strong></span>
+      </summary>
+      <div class="manual-body">
+        <div class="match-header">
+          <span class="label">Partida manual</span>
+          <button id="btn-edit-current" class="btn-link" type="button">Editar número</button>
+        </div>
+
+        <button id="btn-add-one" class="btn btn-primary btn-giant" type="button">
+          +1 Cofre
+        </button>
+
+        <div class="quick-row" role="group" aria-label="Ajustes rápidos">
+          <button class="btn btn-secondary" type="button" data-delta="-1">-1</button>
+          <button class="btn btn-secondary" type="button" data-delta="2">+2</button>
+          <button class="btn btn-secondary" type="button" data-delta="5">+5</button>
+          <button class="btn btn-secondary" type="button" data-delta="10">+10</button>
+        </div>
+
+        <div class="match-actions">
+          <button id="btn-save-match" class="btn btn-gold" type="button">
+            Guardar partida y sumar
+          </button>
+          <button id="btn-reset-current" class="btn btn-ghost" type="button">
+            Reiniciar
+          </button>
+        </div>
+      </div>
+    </details>
+  </main>
+
+  <dialog id="modal-number" class="modal">
+    <form id="modal-form" method="dialog" class="modal-content">
+      <h3 id="modal-title">Ajustar cantidad</h3>
+      <p id="modal-desc" class="modal-desc"></p>
+      <input id="modal-input" type="number" min="0" step="1" required />
+      <div class="modal-actions">
+        <button id="modal-cancel" class="btn btn-ghost" type="button">Cancelar</button>
+        <button class="btn btn-gold" type="submit">Aplicar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>

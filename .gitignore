@@ -1,0 +1,7 @@
+analyzer/bin/
+analyzer/obj/
+wasm-analyzer/bin/
+wasm-analyzer/obj/
+data/
+__pycache__/
+*.pyc

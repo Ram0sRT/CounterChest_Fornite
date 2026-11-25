@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RunAOTCompilation>true</RunAOTCompilation>
+    <WasmEnableSIMD>true</WasmEnableSIMD>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="FortniteReplayReader" Version="3.2.0" />
+    <TrimmerRootAssembly Include="FortniteReplayReader" />
+    <TrimmerRootAssembly Include="Unreal.Core" />
+  </ItemGroup>
+</Project>
