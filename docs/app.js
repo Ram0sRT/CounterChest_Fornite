@@ -378,6 +378,8 @@
     }
   }
 
+  const WASM_JOB_TIMEOUT_MS = 25000;
+
   function ensureWorker() {
     if (workerInstance) {
       return workerInstance;
@@ -387,11 +389,13 @@
       const { id, result } = event.data;
       const job = pendingWorkerJobs.get(id);
       if (!job) return;
+      clearTimeout(job.timer);
       pendingWorkerJobs.delete(id);
       job.resolve(result);
     };
     workerInstance.onerror = (event) => {
       for (const [, job] of pendingWorkerJobs) {
+        clearTimeout(job.timer);
         job.reject(new Error(event.message || "Error en el lector WebAssembly."));
       }
       pendingWorkerJobs.clear();
@@ -403,7 +407,16 @@
     const worker = ensureWorker();
     const id = ++workerSeq;
     return new Promise((resolve, reject) => {
-      pendingWorkerJobs.set(id, { resolve, reject });
+      const timer = setTimeout(() => {
+        pendingWorkerJobs.delete(id);
+        if (workerInstance) {
+          workerInstance.terminate();
+          workerInstance = null;
+        }
+        reject(new Error(`Tiempo agotado analizando ${fileName}`));
+      }, WASM_JOB_TIMEOUT_MS);
+
+      pendingWorkerJobs.set(id, { resolve, reject, timer });
       worker.postMessage({ id, fileName, buffer }, [buffer]);
     });
   }
@@ -497,6 +510,11 @@
       } catch (error) {
         console.error("Error analizando replay:", entry.name, error);
         failedThisSession.add(entry.name);
+        const ageMs = file.lastModified ? Date.now() - file.lastModified : 999999;
+        if (ageMs >= 5 * 60 * 1000 && !store.ignoredFiles.includes(entry.name)) {
+          store.ignoredFiles.push(entry.name);
+          saveLocalStore();
+        }
       }
     }
 
