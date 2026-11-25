@@ -112,9 +112,42 @@
       </div>
     </section>
 
+    <section class="card dates-card" aria-label="Resumen por fechas y calendario">
+      <div class="dates-header">
+        <div>
+          <h2>Cofres por fecha</h2>
+          <p class="dates-subtitle">Elige un día en el calendario o haz clic en cualquier fecha</p>
+        </div>
+        <div class="today-pill">
+          <span>Hoy:</span>
+          <strong id="today-count">0</strong>
+          <small id="today-matches">(0 partidas)</small>
+        </div>
+      </div>
+
+      <div class="calendar-controls">
+        <label class="date-picker-label" for="date-filter">
+          <span>Calendario</span>
+          <input id="date-filter" type="date" />
+        </label>
+        <button id="btn-filter-today" class="btn btn-secondary btn-sm" type="button">Hoy</button>
+        <button id="btn-filter-all" class="btn btn-ghost btn-sm" type="button">Todos los días</button>
+      </div>
+
+      <div id="selected-date-summary" class="selected-date-box" hidden></div>
+
+      <ul id="daily-list" class="daily-list"></ul>
+      <p id="daily-empty" class="empty-state">
+        Aquí aparecerán tus totales organizados día por día cuando guardes partidas.
+      </p>
+    </section>
+
     <section class="card history-card" aria-label="Historial de partidas">
       <div class="history-header">
-        <h2>Historial de partidas</h2>
+        <div>
+          <h2>Historial de partidas</h2>
+          <span id="history-filter-label" class="history-filter-label"></span>
+        </div>
         <button id="btn-clear-all" class="btn-link danger" type="button">Borrar todo</button>
       </div>
       <ul id="history-list" class="history-list"></ul>

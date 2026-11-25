@@ -45,6 +45,15 @@
     statOdds: document.getElementById("stat-odds"),
     statOpened: document.getElementById("stat-opened"),
     statBroken: document.getElementById("stat-broken"),
+    todayCount: document.getElementById("today-count"),
+    todayMatches: document.getElementById("today-matches"),
+    dateFilter: document.getElementById("date-filter"),
+    btnFilterToday: document.getElementById("btn-filter-today"),
+    btnFilterAll: document.getElementById("btn-filter-all"),
+    selectedDateSummary: document.getElementById("selected-date-summary"),
+    dailyList: document.getElementById("daily-list"),
+    dailyEmpty: document.getElementById("daily-empty"),
+    historyFilterLabel: document.getElementById("history-filter-label"),
     currentCount: document.getElementById("current-count"),
     btnAddOne: document.getElementById("btn-add-one"),
     btnSaveMatch: document.getElementById("btn-save-match"),
@@ -73,6 +82,7 @@
   };
   let statusTimer = null;
   let modalMode = null;
+  let selectedDate = "";
   let activeDirHandle = null;
   let savedDirHandle = null;
   let isScanningFolder = false;
@@ -209,16 +219,130 @@
     }
   }
 
+  function getLocalDateKey(isoString) {
+    const date = new Date(isoString);
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  function getTodayDateKey() {
+    return getLocalDateKey(new Date().toISOString());
+  }
+
+  function formatDayLabel(dateKey) {
+    if (!dateKey) return "Sin fecha";
+    const [y, m, d] = dateKey.split("-").map((n) => Number.parseInt(n, 10));
+    const date = new Date(y, m - 1, d);
+    const todayKey = getTodayDateKey();
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayKey = getLocalDateKey(yesterday.toISOString());
+
+    const formatted = date.toLocaleDateString("es-ES", {
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    });
+    if (dateKey === todayKey) return `Hoy · ${formatted}`;
+    if (dateKey === yesterdayKey) return `Ayer · ${formatted}`;
+    return formatted;
+  }
+
+  function buildDailyGroups() {
+    const groups = new Map();
+    for (const match of store.matches) {
+      const key = getLocalDateKey(match.savedAt);
+      if (!key) continue;
+      if (!groups.has(key)) {
+        groups.set(key, { dateKey: key, matches: 0, opened: 0, broken: 0, total: 0 });
+      }
+      const g = groups.get(key);
+      const c = getMatchCounts(match);
+      g.matches += 1;
+      g.opened += c.opened;
+      g.broken += c.broken;
+      g.total += c.total;
+    }
+    return Array.from(groups.values()).sort((a, b) => b.dateKey.localeCompare(a.dateKey));
+  }
+
+  function renderDailySummary(groups) {
+    const todayKey = getTodayDateKey();
+    const todayGroup = groups.find((g) => g.dateKey === todayKey);
+    els.todayCount.textContent = (todayGroup ? todayGroup.total : 0).toLocaleString("es-ES");
+    const todayMatches = todayGroup ? todayGroup.matches : 0;
+    els.todayMatches.textContent = `(${todayMatches} ${todayMatches === 1 ? "partida" : "partidas"})`;
+
+    els.dateFilter.value = selectedDate;
+    els.dailyList.replaceChildren();
+    els.dailyEmpty.hidden = groups.length > 0;
+
+    if (selectedDate) {
+      const chosen = groups.find((g) => g.dateKey === selectedDate);
+      els.selectedDateSummary.hidden = false;
+      els.selectedDateSummary.textContent = chosen
+        ? `${formatDayLabel(selectedDate)}: ${chosen.total.toLocaleString("es-ES")} cofres en ${chosen.matches} ${chosen.matches === 1 ? "partida" : "partidas"} (${chosen.opened} abiertos, ${chosen.broken} rotos).`
+        : `${formatDayLabel(selectedDate)}: 0 cofres registrados en esta fecha.`;
+    } else {
+      els.selectedDateSummary.hidden = true;
+    }
+
+    for (const g of groups) {
+      const li = document.createElement("li");
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = `daily-item${selectedDate === g.dateKey ? " active" : ""}`;
+      btn.addEventListener("click", () => {
+        selectedDate = selectedDate === g.dateKey ? "" : g.dateKey;
+        render();
+      });
+
+      const meta = document.createElement("div");
+      meta.className = "daily-meta";
+
+      const title = document.createElement("span");
+      title.className = "daily-date-title";
+      title.textContent = formatDayLabel(g.dateKey);
+
+      const sub = document.createElement("span");
+      sub.className = "daily-sub";
+      sub.textContent = `${g.matches} ${g.matches === 1 ? "partida" : "partidas"} · ${g.opened} abiertos, ${g.broken} rotos`;
+
+      meta.append(title, sub);
+
+      const total = document.createElement("span");
+      total.className = "daily-chests";
+      total.textContent = g.total.toLocaleString("es-ES");
+
+      btn.append(meta, total);
+      li.appendChild(btn);
+      els.dailyList.appendChild(li);
+    }
+  }
+
   function renderHistory() {
     els.historyList.replaceChildren();
-    const totalMatches = store.matches.length;
-    els.historyEmpty.hidden = totalMatches > 0;
+    const indexedMatches = store.matches.map((match, idx) => ({ match, matchNumber: idx + 1 }));
+    const visibleMatches = selectedDate
+      ? indexedMatches.filter((item) => getLocalDateKey(item.match.savedAt) === selectedDate)
+      : indexedMatches;
 
-    store.matches
+    els.historyFilterLabel.textContent = selectedDate
+      ? `Mostrando: ${formatDayLabel(selectedDate)}`
+      : "";
+
+    els.historyEmpty.hidden = visibleMatches.length > 0;
+
+    visibleMatches
       .slice()
       .reverse()
-      .forEach((match, reversedIndex) => {
-        const matchNumber = totalMatches - reversedIndex;
+      .forEach(({ match, matchNumber }) => {
         const counts = getMatchCounts(match);
 
         const li = document.createElement("li");
@@ -309,6 +433,7 @@
     els.statOpened.textContent = openedSum.toLocaleString("es-ES");
     els.statBroken.textContent = brokenSum.toLocaleString("es-ES");
 
+    renderDailySummary(buildDailyGroups());
     renderHistory();
   }
 
@@ -888,6 +1013,18 @@
 
   els.btnScan.addEventListener("click", () => triggerServerScan(false));
   els.btnRescan.addEventListener("click", () => triggerServerScan(true));
+  els.dateFilter.addEventListener("change", () => {
+    selectedDate = els.dateFilter.value || "";
+    render();
+  });
+  els.btnFilterToday.addEventListener("click", () => {
+    selectedDate = getTodayDateKey();
+    render();
+  });
+  els.btnFilterAll.addEventListener("click", () => {
+    selectedDate = "";
+    render();
+  });
   els.btnModeMine.addEventListener("click", () => updateSettings({ countMode: "mine" }));
   els.btnModeSquad.addEventListener("click", () => updateSettings({ countMode: "squad" }));
   els.btnAddOne.addEventListener("click", () => {
