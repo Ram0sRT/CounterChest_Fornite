@@ -354,6 +354,10 @@ kbd {
   transform: scale(0.98);
 }
 
+.btn[hidden] {
+  display: none;
+}
+
 .btn-giant {
   width: 100%;
   padding: 18px;
